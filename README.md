@@ -24,13 +24,13 @@ cargo install copgy
 ### Single
 
 ```bash
-copgy single --source_sql select * from employees --dest_table employees_tmp --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres
+copgy --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres single --source_sql select * from employees --dest_table employees_tmp
 ```
 
 ### Script
 
 ```bash
-copgy script --file-path ~/Desktop/copgy.json --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres
+copgy --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres script --file-path ~/Desktop/copgy.json
 ```
 
 sample copgy.json
