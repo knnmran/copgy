@@ -1,7 +1,6 @@
-use postgres::Client;
-
 use crate::pg::{get_db_client, parse_sqls};
 use crate::{CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS};
+use postgres::Client;
 use std::io::BufReader;
 use std::io::{Read, Write};
 
