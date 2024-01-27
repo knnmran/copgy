@@ -3,6 +3,10 @@
 copgy is a CLI utility tool for copying data between and executing SQL on
 PostgreSQL databases.
 
+## Warning
+
+Employ the **readonly user** approach when engaging with **production** databases to prevent inadvertent **data loss**.
+
 ## Features
 
 - copy data using a single query
@@ -20,13 +24,13 @@ cargo install copgy
 ### Single
 
 ```bash
-copgy --source-db-url postgresql://localhost:5432/postgres --dest-db-url postgresql://localhost:5432/postgres single --source_sql select * from employees --dest_table employees_tmp
+copgy single --source_sql select * from employees --dest_table employees_tmp --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres
 ```
 
 ### Script
 
 ```bash
-copgy --source-db-url postgresql://localhost:5432/postgres --dest-db-url postgresql://localhost:5432/postgres script --file-path ~/Desktop/copgy.json
+copgy script --file-path ~/Desktop/copgy.json --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres
 ```
 
 sample copgy.json
@@ -36,7 +40,7 @@ sample copgy.json
   {
     // execute on source db
     "execute": {
-      "source_sql": "update employees set first_name = 'Copgy' where emp_no = 0"
+      "source_sql": "update employees set first_name = 'copgy' where emp_no = 0"
     }
   },
   {
@@ -57,10 +61,10 @@ sample copgy.json
 
 ## Info
 
-sample PostgreSQL connection string
+Sample PostgreSQL connection string
 
 ```bash
-postgresql://username:password@host:port/dbname[?paramspec]
+postgresql://username:password@host:port/dbname
 ```
 
 ## License
