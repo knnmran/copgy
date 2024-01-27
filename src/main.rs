@@ -9,8 +9,9 @@ use std::{fmt, fs::read_to_string, process};
 use crate::copgy_process::process_run;
 
 fn main() {
-    println!("{} copgy started", START);
     let args = Args::parse();
+
+    println!("{} copgy started", START);
 
     let copgy_items = match args.command {
         Commands::Single {
