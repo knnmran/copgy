@@ -5,8 +5,8 @@ use std::io::BufReader;
 use std::io::{Read, Write};
 
 pub fn process_run(
-    source_db_url: &String,
-    dest_db_url: &String,
+    source_db_url: &str,
+    dest_db_url: &str,
     copgy_items: Vec<CopgyItem>,
 ) -> Result<(), CopgyError> {
     validate_process(&copgy_items)?;
@@ -29,27 +29,27 @@ pub fn process_run(
     Ok(())
 }
 
-fn validate_process(copgy_items: &Vec<CopgyItem>) -> Result<(), CopgyError> {
+fn validate_process(copgy_items: &[CopgyItem]) -> Result<(), CopgyError> {
     println!("{} validating sql", SUCCESS);
 
     let mut sqls: Vec<String> = Vec::new();
 
-    copgy_items.clone().into_iter().for_each(|copgy_item| {
-        if let Some(copy_item) = copgy_item.copy {
-            sqls.push(copy_item.source_sql)
-        } else if let Some(execute_item) = copgy_item.execute {
-            if let Some(source_sql) = execute_item.source_sql {
-                sqls.push(source_sql)
+    copgy_items.iter().for_each(|copgy_item| {
+        if let Some(copy_item) = &copgy_item.copy {
+            sqls.push(copy_item.source_sql.clone())
+        } else if let Some(execute_item) = &copgy_item.execute {
+            if let Some(source_sql) = &execute_item.source_sql {
+                sqls.push(source_sql.to_string())
             }
 
-            if let Some(dest_sql) = execute_item.dest_sql {
-                sqls.push(dest_sql)
+            if let Some(dest_sql) = &execute_item.dest_sql {
+                sqls.push(dest_sql.to_string())
             }
         }
     });
 
     let mut final_sql = sqls.join(";");
-    final_sql.push_str(";");
+    final_sql.push(';');
 
     parse_sqls(&final_sql)?;
 

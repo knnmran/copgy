@@ -27,8 +27,10 @@ fn main() {
                 copy_item.dest_table = dest_table;
             }
 
-            let mut copgy_item: CopgyItem = CopgyItem::default();
-            copgy_item.copy = Some(copy_item);
+            let copgy_item: CopgyItem = CopgyItem {
+                copy: Some(copy_item),
+                ..Default::default()
+            };
 
             vec![copgy_item]
         }
