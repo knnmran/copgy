@@ -1,4 +1,4 @@
-use crate::{CopgyError, SUCCESS};
+use crate::{get_time_now, CopgyError, SUCCESS};
 use native_tls::TlsConnector;
 use postgres::{Client, Config};
 use postgres_native_tls::MakeTlsConnector;
@@ -43,8 +43,12 @@ pub fn get_db_client(url: &str) -> Result<Client, CopgyError> {
     let pg_parameters = parse_db_url(url)?;
 
     println!(
-        r#"{} obtain connection {} {} {}"#,
-        SUCCESS, &pg_parameters.host, &pg_parameters.port, &pg_parameters.dbname
+        r#"[{}] {} obtain connection {} {} {}"#,
+        get_time_now(),
+        SUCCESS,
+        &pg_parameters.host,
+        &pg_parameters.port,
+        &pg_parameters.dbname
     );
 
     let connector = match TlsConnector::builder()
