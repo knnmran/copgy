@@ -25,12 +25,10 @@ pub fn parse_db_url(url: &str) -> Result<PgParameters, CopgyError> {
                 ..Default::default()
             };
 
-            let username = url.username();
-
-            pg_parameters.username = if username.is_empty() {
+            pg_parameters.username = if url.username().is_empty() {
                 None
             } else {
-                Some(username.to_string())
+                Some(url.username().to_string())
             };
 
             pg_parameters.password = url.password().map(|password| password.to_string());
