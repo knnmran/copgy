@@ -4,6 +4,7 @@ mod pg;
 use clap::{Parser, Subcommand};
 use console::Emoji;
 use serde::Deserialize;
+use std::time::Instant;
 use std::{fmt, fs::read_to_string, process};
 
 use crate::copgy_process::process_run;
@@ -12,6 +13,7 @@ fn main() {
     let args = Args::parse();
 
     println!("{} copgy started", START);
+    let now = Instant::now();
 
     let copgy_items = match args.command {
         Commands::Single {
@@ -58,7 +60,10 @@ fn main() {
         process::exit(1);
     };
 
-    println!("{} copgy ended", END);
+    let new_now = Instant::now();
+    let duration = new_now.duration_since(now);
+
+    println!("{} copgy completed in {:?} seconds", END, &duration);
 }
 
 #[derive(Debug)]
