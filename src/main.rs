@@ -1,13 +1,11 @@
 mod copgy_process;
 mod pg;
 
+use crate::copgy_process::process_run;
 use clap::{Parser, Subcommand};
 use console::Emoji;
 use serde::Deserialize;
-use std::time::Instant;
-use std::{fmt, fs::read_to_string, process};
-
-use crate::copgy_process::process_run;
+use std::{fmt, fs::read_to_string, process, time::Instant};
 
 fn main() {
     let args = Args::parse();

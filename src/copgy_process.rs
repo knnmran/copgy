@@ -1,8 +1,7 @@
 use crate::pg::{get_db_client, parse_sqls};
 use crate::{CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS};
 use postgres::Client;
-use std::io::BufReader;
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 
 pub fn process_run(
     source_db_url: &str,
