@@ -1,4 +1,4 @@
-use crate::CopgyError;
+use crate::{CopgyError, SUCCESS};
 use native_tls::TlsConnector;
 use postgres::{Client, Config};
 use postgres_native_tls::MakeTlsConnector;
@@ -43,6 +43,11 @@ pub fn parse_db_url(url: &str) -> Result<PgParameters, CopgyError> {
 
 pub fn get_db_client(url: &str) -> Result<Client, CopgyError> {
     let pg_parameters = parse_db_url(url)?;
+
+    println!(
+        r#"{} obtaining connection host: {} port: {} dbname: {}"#,
+        SUCCESS, &pg_parameters.host, &pg_parameters.port, &pg_parameters.dbname
+    );
 
     let connector = match TlsConnector::builder()
         .danger_accept_invalid_certs(true)
