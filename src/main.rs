@@ -53,14 +53,9 @@ fn main() {
         }
     };
 
-    match process_run(&args.source_db_url, &args.dest_db_url, copgy_items) {
-        Ok(_) => {
-            println!("{} finished process", SUCCESS);
-        }
-        Err(e) => {
-            println!("{} error: {:?}", ERROR, e.to_string());
-            process::exit(1);
-        }
+    if let Err(e) = process_run(&args.source_db_url, &args.dest_db_url, copgy_items) {
+        println!("{} error: {:?}", ERROR, e.to_string());
+        process::exit(1);
     };
 
     println!("{} copgy ended", END);
