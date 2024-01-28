@@ -11,10 +11,7 @@ pub fn process_run(
 ) -> Result<(), CopgyError> {
     validate_process(&copgy_items)?;
 
-    println!("{} obtaining source db connection", SUCCESS);
     let mut source_client = get_db_client(source_db_url)?;
-
-    println!("{} obtaining destination db connection", SUCCESS);
     let mut destination_client = get_db_client(dest_db_url)?;
 
     for item in copgy_items {
