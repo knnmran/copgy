@@ -13,6 +13,7 @@ pub fn process_run(
 
     println!("{} obtaining source db connection", SUCCESS);
     let mut source_client = get_db_client(source_db_url)?;
+
     println!("{} obtaining destination db connection", SUCCESS);
     let mut destination_client = get_db_client(dest_db_url)?;
 
@@ -103,17 +104,16 @@ fn execute_process(
     if let Some(source_sql) = execute_item.source_sql {
         println!(r#"{} executing on source db "{}""#, EXECUTE, &source_sql);
 
-        match source_client.execute(&source_sql, &[]) {
-            Ok(_) => {}
-            Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
+        if let Err(e) = source_client.execute(&source_sql, &[]) {
+            return Err(CopgyError::PostgresError(e.to_string()));
         };
     };
 
     if let Some(dest_sql) = execute_item.dest_sql {
         println!(r#"{} executing on destination db "{}""#, EXECUTE, &dest_sql);
-        match destination_client.execute(&dest_sql, &[]) {
-            Ok(_) => {}
-            Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
+
+        if let Err(e) = destination_client.execute(&dest_sql, &[]) {
+            return Err(CopgyError::PostgresError(e.to_string()));
         };
     };
 
