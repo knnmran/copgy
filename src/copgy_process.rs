@@ -28,7 +28,7 @@ pub fn process_run(
 }
 
 fn validate_process(copgy_items: &[CopgyItem]) -> Result<(), CopgyError> {
-    println!("{} validating sql", SUCCESS);
+    println!("{} validate sql", SUCCESS);
 
     let mut sqls: Vec<String> = Vec::new();
 
@@ -60,7 +60,7 @@ fn copy_process(
     copy_item: CopyItem,
 ) -> Result<(), CopgyError> {
     println!(
-        r#"{} copying to "{}" using "{}""#,
+        r#"{} copy to "{}" using "{}""#,
         COPY, &copy_item.dest_table, &copy_item.source_sql
     );
     let copy_sql = format!("COPY ({}) TO stdout", copy_item.source_sql);
@@ -99,7 +99,7 @@ fn execute_process(
     execute_item: ExecuteItem,
 ) -> Result<(), CopgyError> {
     if let Some(source_sql) = execute_item.source_sql {
-        println!(r#"{} executing on source db "{}""#, EXECUTE, &source_sql);
+        println!(r#"{} execute on source "{}""#, EXECUTE, &source_sql);
 
         if let Err(e) = source_client.execute(&source_sql, &[]) {
             return Err(CopgyError::PostgresError(e.to_string()));
@@ -107,7 +107,7 @@ fn execute_process(
     };
 
     if let Some(dest_sql) = execute_item.dest_sql {
-        println!(r#"{} executing on destination db "{}""#, EXECUTE, &dest_sql);
+        println!(r#"{} execute on destination "{}""#, EXECUTE, &dest_sql);
 
         if let Err(e) = destination_client.execute(&dest_sql, &[]) {
             return Err(CopgyError::PostgresError(e.to_string()));

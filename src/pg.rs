@@ -45,7 +45,7 @@ pub fn get_db_client(url: &str) -> Result<Client, CopgyError> {
     let pg_parameters = parse_db_url(url)?;
 
     println!(
-        r#"{} obtaining connection host: {} port: {} dbname: {}"#,
+        r#"{} obtain connection {} {} {}"#,
         SUCCESS, &pg_parameters.host, &pg_parameters.port, &pg_parameters.dbname
     );
 

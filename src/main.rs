@@ -63,7 +63,7 @@ fn main() {
     let new_now = Instant::now();
     let duration = new_now.duration_since(now);
 
-    println!("{} copgy completed in {:?} seconds", END, &duration);
+    println!("{} copgy completed in {:?}", END, &duration);
 }
 
 #[derive(Debug)]
