@@ -39,12 +39,7 @@ fn main() {
             let file_content = match read_to_string(file_path) {
                 Ok(file_content) => file_content,
                 Err(e) => {
-                    println!(
-                        "[{}] {} error: {:?}",
-                        get_time_now(),
-                        ERROR,
-                        e.to_string()
-                    );
+                    println!("[{}] {} error: {:?}", get_time_now(), ERROR, e.to_string());
 
                     process::exit(1);
                 }
@@ -53,25 +48,22 @@ fn main() {
             match serde_json::from_str::<Vec<CopgyItem>>(&file_content) {
                 Ok(copgy_items) => copgy_items,
                 Err(e) => {
-                    println!(
-                        "[{}] {} error: {:?}",
-                        get_time_now(),
-                        ERROR,
-                        e.to_string()
-                    );
+                    println!("[{}] {} error: {:?}", get_time_now(), ERROR, e.to_string());
                     process::exit(1);
                 }
             }
         }
     };
 
-    if let Err(e) = process_run(&args.source_db_url, &args.dest_db_url, copgy_items) {
-        println!(
-            "[{}] {} error: {:?}",
-            get_time_now(),
-            ERROR,
-            e.to_string()
-        );
+    let validate_sql = args.validate_sql.unwrap_or(false);
+
+    if let Err(e) = process_run(
+        &args.source_db_url,
+        &args.dest_db_url,
+        copgy_items,
+        validate_sql,
+    ) {
+        println!("[{}] {} error: {:?}", get_time_now(), ERROR, e.to_string());
         process::exit(1);
     };
 
@@ -114,6 +106,9 @@ pub struct Args {
 
     #[arg(long)]
     dest_db_url: String,
+
+    #[arg(long)]
+    validate_sql: Option<bool>,
 
     #[command(subcommand)]
     command: Commands,
