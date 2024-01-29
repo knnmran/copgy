@@ -1,16 +1,18 @@
 mod copgy_process;
 mod pg;
 
+use crate::copgy_process::process_run;
+use chrono::{SecondsFormat, Utc};
 use clap::{Parser, Subcommand};
 use console::Emoji;
 use serde::Deserialize;
-use std::{fmt, fs::read_to_string, process};
-
-use crate::copgy_process::process_run;
+use std::{fmt, fs::read_to_string, process, time::Instant};
 
 fn main() {
-    println!("{} copgy started", START);
     let args = Args::parse();
+
+    println!("[{}] {} copgy started", get_time_now(), START);
+    let now = Instant::now();
 
     let copgy_items = match args.command {
         Commands::Single {
@@ -26,8 +28,10 @@ fn main() {
                 copy_item.dest_table = dest_table;
             }
 
-            let mut copgy_item: CopgyItem = CopgyItem::default();
-            copgy_item.copy = Some(copy_item);
+            let copgy_item: CopgyItem = CopgyItem {
+                copy: Some(copy_item),
+                ..Default::default()
+            };
 
             vec![copgy_item]
         }
@@ -35,7 +39,13 @@ fn main() {
             let file_content = match read_to_string(file_path) {
                 Ok(file_content) => file_content,
                 Err(e) => {
-                    println!("{} error: {:?}", ERROR, e.to_string());
+                    println!(
+                        "[{}] {} error: {:?}",
+                        get_time_now(),
+                        ERROR,
+                        e.to_string()
+                    );
+
                     process::exit(1);
                 }
             };
@@ -43,24 +53,41 @@ fn main() {
             match serde_json::from_str::<Vec<CopgyItem>>(&file_content) {
                 Ok(copgy_items) => copgy_items,
                 Err(e) => {
-                    println!("{} error: {:?}", ERROR, e.to_string());
+                    println!(
+                        "[{}] {} error: {:?}",
+                        get_time_now(),
+                        ERROR,
+                        e.to_string()
+                    );
                     process::exit(1);
                 }
             }
         }
     };
 
-    match process_run(&args.source_db_url, &args.dest_db_url, copgy_items) {
-        Ok(_) => {
-            println!("{} finished process", SUCCESS);
-        }
-        Err(e) => {
-            println!("{} error: {:?}", ERROR, e.to_string());
-            process::exit(1);
-        }
+    if let Err(e) = process_run(&args.source_db_url, &args.dest_db_url, copgy_items) {
+        println!(
+            "[{}] {} error: {:?}",
+            get_time_now(),
+            ERROR,
+            e.to_string()
+        );
+        process::exit(1);
     };
 
-    println!("{} copgy ended", END);
+    let new_now = Instant::now();
+    let duration = new_now.duration_since(now);
+
+    println!(
+        "[{}] {} copgy completed in {:?}",
+        get_time_now(),
+        END,
+        &duration
+    );
+}
+
+pub fn get_time_now() -> String {
+    Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
 #[derive(Debug)]

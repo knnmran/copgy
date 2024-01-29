@@ -1,19 +1,18 @@
 use crate::pg::{get_db_client, parse_sqls};
-use crate::{CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS};
+use crate::{
+    get_time_now, CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS,
+};
 use postgres::Client;
-use std::io::BufReader;
-use std::io::{Read, Write};
+use std::io::{BufReader, Read, Write};
 
 pub fn process_run(
-    source_db_url: &String,
-    dest_db_url: &String,
+    source_db_url: &str,
+    dest_db_url: &str,
     copgy_items: Vec<CopgyItem>,
 ) -> Result<(), CopgyError> {
     validate_process(&copgy_items)?;
 
-    println!("{} obtaining source db connection", SUCCESS);
     let mut source_client = get_db_client(source_db_url)?;
-    println!("{} obtaining destination db connection", SUCCESS);
     let mut destination_client = get_db_client(dest_db_url)?;
 
     for item in copgy_items {
@@ -29,27 +28,27 @@ pub fn process_run(
     Ok(())
 }
 
-fn validate_process(copgy_items: &Vec<CopgyItem>) -> Result<(), CopgyError> {
-    println!("{} validating sql", SUCCESS);
+fn validate_process(copgy_items: &[CopgyItem]) -> Result<(), CopgyError> {
+    println!("[{}] {} validate sql", get_time_now(), SUCCESS);
 
     let mut sqls: Vec<String> = Vec::new();
 
-    copgy_items.clone().into_iter().for_each(|copgy_item| {
-        if let Some(copy_item) = copgy_item.copy {
-            sqls.push(copy_item.source_sql)
-        } else if let Some(execute_item) = copgy_item.execute {
-            if let Some(source_sql) = execute_item.source_sql {
-                sqls.push(source_sql)
+    copgy_items.iter().for_each(|copgy_item| {
+        if let Some(copy_item) = &copgy_item.copy {
+            sqls.push(copy_item.source_sql.clone())
+        } else if let Some(execute_item) = &copgy_item.execute {
+            if let Some(source_sql) = &execute_item.source_sql {
+                sqls.push(source_sql.to_string())
             }
 
-            if let Some(dest_sql) = execute_item.dest_sql {
-                sqls.push(dest_sql)
+            if let Some(dest_sql) = &execute_item.dest_sql {
+                sqls.push(dest_sql.to_string())
             }
         }
     });
 
     let mut final_sql = sqls.join(";");
-    final_sql.push_str(";");
+    final_sql.push(';');
 
     parse_sqls(&final_sql)?;
 
@@ -62,8 +61,11 @@ fn copy_process(
     copy_item: CopyItem,
 ) -> Result<(), CopgyError> {
     println!(
-        r#"{} copying to "{}" using "{}""#,
-        COPY, &copy_item.dest_table, &copy_item.source_sql
+        r#"[{}] {} copy to "{}" using "{}""#,
+        get_time_now(),
+        COPY,
+        &copy_item.dest_table,
+        &copy_item.source_sql
     );
     let copy_sql = format!("COPY ({}) TO stdout", copy_item.source_sql);
     let reader = match source_client.copy_out(&copy_sql) {
@@ -101,19 +103,28 @@ fn execute_process(
     execute_item: ExecuteItem,
 ) -> Result<(), CopgyError> {
     if let Some(source_sql) = execute_item.source_sql {
-        println!(r#"{} executing on source db "{}""#, EXECUTE, &source_sql);
+        println!(
+            r#"[{}] {} execute on source "{}""#,
+            get_time_now(),
+            EXECUTE,
+            &source_sql
+        );
 
-        match source_client.execute(&source_sql, &[]) {
-            Ok(_) => {}
-            Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
+        if let Err(e) = source_client.execute(&source_sql, &[]) {
+            return Err(CopgyError::PostgresError(e.to_string()));
         };
     };
 
     if let Some(dest_sql) = execute_item.dest_sql {
-        println!(r#"{} executing on destination db "{}""#, EXECUTE, &dest_sql);
-        match destination_client.execute(&dest_sql, &[]) {
-            Ok(_) => {}
-            Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
+        println!(
+            r#"[{}] {} execute on destination "{}""#,
+            get_time_now(),
+            EXECUTE,
+            &dest_sql
+        );
+
+        if let Err(e) = destination_client.execute(&dest_sql, &[]) {
+            return Err(CopgyError::PostgresError(e.to_string()));
         };
     };
 
