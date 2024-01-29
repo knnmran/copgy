@@ -1,7 +1,5 @@
 use crate::pg::{get_db_client, parse_sqls};
-use crate::{
-    get_time_now, CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS,
-};
+use crate::{get_time_now, CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS};
 use postgres::Client;
 use std::io::{BufReader, Read, Write};
 
@@ -9,8 +7,11 @@ pub fn process_run(
     source_db_url: &str,
     dest_db_url: &str,
     copgy_items: Vec<CopgyItem>,
+    validate_sql: bool,
 ) -> Result<(), CopgyError> {
-    validate_process(&copgy_items)?;
+    if validate_sql {
+        validate_process(&copgy_items)?;
+    }
 
     let mut source_client = get_db_client(source_db_url)?;
     let mut destination_client = get_db_client(dest_db_url)?;
