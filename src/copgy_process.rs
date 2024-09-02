@@ -1,20 +1,49 @@
 use crate::pg::{get_db_client, parse_sqls};
-use crate::{get_time_now, CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE, SUCCESS};
+use crate::{
+    get_time_now, Args, Commands, CopgyError, CopgyItem, CopyItem, ExecuteItem, COPY, EXECUTE,
+    SUCCESS,
+};
 use postgres::Client;
-use std::io::{BufReader, Read, Write};
+use std::fs::read_to_string;
+use std::io::{Read, Write};
 
-pub fn process_run(
-    source_db_url: &str,
-    dest_db_url: &str,
-    copgy_items: Vec<CopgyItem>,
-    validate_sql: bool,
-) -> Result<(), CopgyError> {
-    if validate_sql {
+pub fn process_run(args: Args) -> Result<(), CopgyError> {
+    let copgy_items = match args.command {
+        Commands::Single {
+            source_sql,
+            dest_table,
+        } => {
+            let mut copy_item: CopyItem = CopyItem::default();
+            if let Some(source_sql) = source_sql {
+                copy_item.source_sql = source_sql;
+            }
+
+            if let Some(dest_table) = dest_table {
+                copy_item.dest_table = dest_table;
+            }
+
+            let copgy_item: CopgyItem = CopgyItem {
+                copy: Some(copy_item),
+                ..Default::default()
+            };
+
+            vec![copgy_item]
+        }
+        Commands::Script { file_path } => {
+            let file_content = read_to_string(file_path)
+                .map_err(|err| CopgyError::FileReadError(err.to_string()))?;
+
+            serde_json::from_str::<Vec<CopgyItem>>(&file_content)
+                .map_err(|err| CopgyError::FileParseError(err.to_string()))?
+        }
+    };
+
+    if args.validate_sql.unwrap_or(false) {
         validate_process(&copgy_items)?;
     }
 
-    let mut source_client = get_db_client(source_db_url)?;
-    let mut destination_client = get_db_client(dest_db_url)?;
+    let mut source_client = get_db_client(&args.source_db_url)?;
+    let mut destination_client = get_db_client(&args.dest_db_url)?;
 
     for item in copgy_items {
         if let Some(copy_item) = item.copy {
@@ -69,31 +98,26 @@ fn copy_process(
         &copy_item.source_sql
     );
     let copy_sql = format!("COPY ({}) TO stdout", copy_item.source_sql);
-    let reader = match source_client.copy_out(&copy_sql) {
-        Ok(client) => BufReader::new(client),
-        Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
-    };
+    let reader = source_client
+        .copy_out(&copy_sql)
+        .map_err(|err| CopgyError::PostgresError(err.to_string()))?;
 
     let copy_to_sql = format!("COPY {} FROM stdin", copy_item.dest_table);
-    let mut writer = match destination_client.copy_in(&copy_to_sql) {
-        Ok(client) => client,
-        Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
-    };
+    let mut writer = destination_client
+        .copy_in(&copy_to_sql)
+        .map_err(|err| CopgyError::PostgresError(err.to_string()))?;
 
     for byte in reader.bytes() {
-        let bytes = match byte {
-            Ok(bytes) => bytes,
-            Err(e) => return Err(CopgyError::BufferReadError(e.to_string())),
-        };
+        let bytes = byte.map_err(|err| CopgyError::BufferReadError(err.to_string()))?;
 
-        if let Err(e) = writer.write(&[bytes]) {
-            return Err(CopgyError::BufferWriterError(e.to_string()));
-        };
+        writer
+            .write(&[bytes])
+            .map_err(|err| CopgyError::BufferWriterError(err.to_string()))?;
     }
 
-    if let Err(e) = writer.finish() {
-        return Err(CopgyError::BufferFinishError(e.to_string()));
-    };
+    writer
+        .finish()
+        .map_err(|err| CopgyError::BufferFinishError(err.to_string()))?;
 
     Ok(())
 }
@@ -111,9 +135,9 @@ fn execute_process(
             &source_sql
         );
 
-        if let Err(e) = source_client.execute(&source_sql, &[]) {
-            return Err(CopgyError::PostgresError(e.to_string()));
-        };
+        source_client
+            .execute(&source_sql, &[])
+            .map_err(|err| CopgyError::PostgresError(err.to_string()))?;
     };
 
     if let Some(dest_sql) = execute_item.dest_sql {
@@ -124,9 +148,9 @@ fn execute_process(
             &dest_sql
         );
 
-        if let Err(e) = destination_client.execute(&dest_sql, &[]) {
-            return Err(CopgyError::PostgresError(e.to_string()));
-        };
+        destination_client
+            .execute(&dest_sql, &[])
+            .map_err(|err| CopgyError::PostgresError(err.to_string()))?;
     };
 
     Ok(())

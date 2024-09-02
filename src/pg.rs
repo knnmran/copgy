@@ -6,58 +6,49 @@ use sqlparser::{dialect::GenericDialect, parser::Parser};
 use url::Url;
 
 pub fn parse_db_url(url: &str) -> Result<PgParameters, CopgyError> {
-    match Url::parse(url) {
-        Ok(url) => {
-            let mut pg_parameters = PgParameters {
-                host: match url.host() {
-                    Some(host) => host.to_string(),
-                    None => {
-                        return Err(CopgyError::UrlParserError("db url missing host".to_owned()))
-                    }
-                },
-                port: match url.port() {
-                    Some(port) => port,
-                    None => {
-                        return Err(CopgyError::UrlParserError("db url missing port".to_owned()))
-                    }
-                },
-                dbname: url.path().to_string().replace('/', ""),
-                ..Default::default()
-            };
+    let url = Url::parse(url).map_err(|err| CopgyError::UrlParserError(err.to_string()))?;
 
-            pg_parameters.username = if url.username().is_empty() {
-                None
-            } else {
-                Some(url.username().to_string())
-            };
+    let host = url
+        .host()
+        .ok_or(CopgyError::UrlParserError("db url missing host".to_owned()))?;
 
-            pg_parameters.password = url.password().map(|password| password.to_string());
+    let port = if let Some(port) = url.port() {
+        port
+    } else {
+        return Err(CopgyError::UrlParserError("db url missing port".to_owned()));
+    };
 
-            Ok(pg_parameters)
-        }
-        Err(e) => Err(CopgyError::UrlParserError(e.to_string())),
-    }
+    let db_name = if url.path().is_empty() {
+        return Err(CopgyError::UrlParserError(
+            "db url missing db name".to_owned(),
+        ));
+    } else {
+        url.path().to_string().replace('/', "")
+    };
+
+    let mut pg_parameters = PgParameters::default();
+    pg_parameters.host = host.to_string();
+    pg_parameters.port = port;
+    pg_parameters.dbname = db_name;
+
+    if !url.username().is_empty() {
+        pg_parameters.username = Some(url.username().to_owned());
+    };
+
+    if let Some(password) = url.password() {
+        pg_parameters.password = Some(password.to_owned());
+    };
+
+    Ok(pg_parameters)
 }
 
 pub fn get_db_client(url: &str) -> Result<Client, CopgyError> {
     let pg_parameters = parse_db_url(url)?;
 
-    println!(
-        r#"[{}] {} obtain connection {} {} {}"#,
-        get_time_now(),
-        SUCCESS,
-        &pg_parameters.host,
-        &pg_parameters.port,
-        &pg_parameters.dbname
-    );
-
-    let connector = match TlsConnector::builder()
+    let connector = TlsConnector::builder()
         .danger_accept_invalid_certs(true)
         .build()
-    {
-        Ok(connector) => connector,
-        Err(e) => return Err(CopgyError::PostgresError(e.to_string())),
-    };
+        .map_err(|err| CopgyError::PostgresError(err.to_string()))?;
 
     let connector = MakeTlsConnector::new(connector);
 
@@ -65,11 +56,11 @@ pub fn get_db_client(url: &str) -> Result<Client, CopgyError> {
 
     if let Some(username) = pg_parameters.username {
         config.user(&username);
-    }
+    };
 
     if let Some(password) = pg_parameters.password {
         config.password(&password);
-    }
+    };
 
     match config
         .host(pg_parameters.host.as_str())
@@ -77,7 +68,17 @@ pub fn get_db_client(url: &str) -> Result<Client, CopgyError> {
         .dbname(&pg_parameters.dbname)
         .connect(connector)
     {
-        Ok(client) => Ok(client),
+        Ok(client) => {
+            println!(
+                r#"[{}] {} obtain connection {} {} {}"#,
+                get_time_now(),
+                SUCCESS,
+                &pg_parameters.host,
+                &pg_parameters.port,
+                &pg_parameters.dbname
+            );
+            Ok(client)
+        }
         Err(e) => Err(CopgyError::PostgresError(e.to_string())),
     }
 }

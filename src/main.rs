@@ -6,76 +6,34 @@ use chrono::{SecondsFormat, Utc};
 use clap::{Parser, Subcommand};
 use console::Emoji;
 use serde::Deserialize;
-use std::{fmt, fs::read_to_string, process, time::Instant};
+use std::{fmt, time::Instant};
 
-fn main() {
+fn main() -> Result<(), CopgyError> {
     let args = Args::parse();
 
     println!("[{}] {} copgy started", get_time_now(), START);
     let now = Instant::now();
 
-    let copgy_items = match args.command {
-        Commands::Single {
-            source_sql,
-            dest_table,
-        } => {
-            let mut copy_item: CopyItem = CopyItem::default();
-            if let Some(source_sql) = source_sql {
-                copy_item.source_sql = source_sql;
-            }
+    if let Err(err) = process_run(args) {
+        println!(
+            "[{}] {} error: {:?}",
+            get_time_now(),
+            ERROR,
+            err.to_string()
+        );
+    } else {
+        let new_now = Instant::now();
+        let duration = new_now.duration_since(now);
 
-            if let Some(dest_table) = dest_table {
-                copy_item.dest_table = dest_table;
-            }
+        println!(
+            "[{}] {} copgy completed in {:?}",
+            get_time_now(),
+            END,
+            &duration
+        );
+    }
 
-            let copgy_item: CopgyItem = CopgyItem {
-                copy: Some(copy_item),
-                ..Default::default()
-            };
-
-            vec![copgy_item]
-        }
-        Commands::Script { file_path } => {
-            let file_content = match read_to_string(file_path) {
-                Ok(file_content) => file_content,
-                Err(e) => {
-                    println!("[{}] {} error: {:?}", get_time_now(), ERROR, e.to_string());
-
-                    process::exit(1);
-                }
-            };
-
-            match serde_json::from_str::<Vec<CopgyItem>>(&file_content) {
-                Ok(copgy_items) => copgy_items,
-                Err(e) => {
-                    println!("[{}] {} error: {:?}", get_time_now(), ERROR, e.to_string());
-                    process::exit(1);
-                }
-            }
-        }
-    };
-
-    let validate_sql = args.validate_sql.unwrap_or(false);
-
-    if let Err(e) = process_run(
-        &args.source_db_url,
-        &args.dest_db_url,
-        copgy_items,
-        validate_sql,
-    ) {
-        println!("[{}] {} error: {:?}", get_time_now(), ERROR, e.to_string());
-        process::exit(1);
-    };
-
-    let new_now = Instant::now();
-    let duration = new_now.duration_since(now);
-
-    println!(
-        "[{}] {} copgy completed in {:?}",
-        get_time_now(),
-        END,
-        &duration
-    );
+    Ok(())
 }
 
 pub fn get_time_now() -> String {
@@ -84,6 +42,8 @@ pub fn get_time_now() -> String {
 
 #[derive(Debug)]
 pub enum CopgyError {
+    FileReadError(String),
+    FileParseError(String),
     PostgresError(String),
     SqlParserError(String),
     UrlParserError(String),
