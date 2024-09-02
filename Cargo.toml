@@ -1,12 +1,12 @@
 [package]
 name = "copgy"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2021"
 license = "MIT"
 description = "CLI utility tool for copying data between and executing SQL on PostgreSQL databases"
 repository = "https://github.com/knnmran/copgy"
 readme = "README.md"
-keywords = [ "postgresql", "copy", "sql", "cli"]
+keywords = ["postgresql", "copy", "sql", "cli"]
 categories = ["command-line-utilities"]
 
 [dependencies]
