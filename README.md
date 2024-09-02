@@ -24,7 +24,7 @@ cargo install copgy
 ### Single
 
 ```bash
-copgy --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres single --source_sql select * from employees --dest_table employees_tmp
+copgy --source-db-url postgresql://host:5432/postgres --dest-db-url postgresql://host:5432/postgres single --source-sql 'select * from employees' --dest-table employees_tmp
 ```
 
 ### Script
